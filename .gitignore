@@ -1,0 +1,20 @@
+# PMSデータ・個人情報含むファイルは除外
+a.csv
+*.csv
+!competitor_prices_sample.csv
+
+# Pythonキャッシュ
+__pycache__/
+*.pyc
+*.pyo
+
+# Streamlit cache
+.streamlit/secrets.toml
+
+# ログ
+scrape_log.txt
+rm_snapshot.csv
+
+# Excel出力
+RM価格案.xlsx
+~$*.xlsx

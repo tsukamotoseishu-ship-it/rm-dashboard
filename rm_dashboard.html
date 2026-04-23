@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>石和温泉 ホテル甲子園 RMダッシュボード</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Kaku Gothic Pro', 'Meiryo', sans-serif; background: #f0f2f5; color: #333; }
+
+  .header {
+    background: linear-gradient(135deg, #1a3a5c, #2980b9);
+    color: white; padding: 20px 30px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .header h1 { font-size: 20px; font-weight: bold; }
+  .header .meta { font-size: 13px; opacity: 0.85; text-align: right; line-height: 1.8; }
+
+  .flow-bar {
+    background: white; padding: 12px 30px;
+    display: flex; gap: 0; overflow-x: auto;
+    border-bottom: 2px solid #e0e0e0;
+  }
+  .flow-step {
+    display: flex; align-items: center; font-size: 12px;
+    white-space: nowrap;
+  }
+  .flow-step .badge {
+    background: #2980b9; color: white;
+    border-radius: 50%; width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 11px; margin-right: 6px; flex-shrink: 0;
+  }
+  .flow-step.done .badge { background: #27ae60; }
+  .flow-step.done .label { color: #27ae60; }
+  .flow-step.current .badge { background: #e67e22; }
+  .flow-step.current .label { color: #e67e22; font-weight: bold; }
+  .flow-arrow { color: #bbb; margin: 0 10px; font-size: 16px; }
+
+  .container { padding: 20px 30px; max-width: 1600px; margin: 0 auto; }
+
+  /* カード */
+  .cards { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .card {
+    background: white; border-radius: 10px; padding: 18px 22px;
+    flex: 1; min-width: 200px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 5px solid #ccc;
+  }
+  .card.red { border-left-color: #e74c3c; }
+  .card.green { border-left-color: #27ae60; }
+  .card.orange { border-left-color: #e67e22; }
+  .card .label { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .card .value { font-size: 28px; font-weight: bold; }
+  .card.red .value { color: #e74c3c; }
+  .card.green .value { color: #27ae60; }
+  .card.orange .value { color: #e67e22; }
+  .card .sub { font-size: 12px; color: #aaa; margin-top: 4px; }
+
+  /* セクションタイトル */
+  .section-title {
+    font-size: 15px; font-weight: bold;
+    color: #1a3a5c; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 2px solid #2980b9;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title .icon { font-size: 18px; }
+
+  /* メインテーブル */
+  .table-wrap { overflow-x: auto; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    background: #1a3a5c; color: white;
+    padding: 10px 12px; text-align: center;
+    white-space: nowrap; position: sticky; top: 0;
+  }
+  td { padding: 9px 12px; text-align: center; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+  tr:hover td { background: #f8f9ff; }
+  tr.weekend td { background: #fffbf0; }
+  tr.holiday td { background: #fff5f5; }
+
+  /* バッジ */
+  .badge-action {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 12px; font-size: 12px; font-weight: bold;
+  }
+  .stay { background: #e8f8ee; color: #27ae60; }
+  .up { background: #e8f0ff; color: #2980b9; }
+  .down { background: #ffeaea; color: #e74c3c; }
+
+  .rank { font-weight: bold; font-size: 14px; }
+  .diff-pos { color: #27ae60; font-weight: bold; }
+  .diff-neg { color: #e74c3c; font-weight: bold; }
+  .diff-neu { color: #888; }
+
+  /* 消化率バー */
+  .occ-bar { position: relative; height: 18px; background: #eee; border-radius: 9px; width: 80px; margin: 0 auto; }
+  .occ-fill { height: 100%; border-radius: 9px; position: absolute; top: 0; left: 0; }
+  .occ-label { position: absolute; top: 0; left: 0; right: 0; text-align: center; font-size: 11px; line-height: 18px; font-weight: bold; color: #333; }
+
+  /* 部屋タイプ表 */
+  .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .room-card { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .room-card h3 { font-size: 14px; color: #1a3a5c; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+  .room-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 13px; }
+  .room-row .date { color: #888; }
+  .rank-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 13px; }
+  .rank-current { background: #e8f0ff; color: #2980b9; }
+  .rank-suggest { background: #e8f8ee; color: #27ae60; }
+  .rank-down { background: #ffeaea; color: #e74c3c; }
+  .arrow { color: #aaa; margin: 0 4px; }
+
+  /* 競合テーブル */
+  details { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; }
+  summary { padding: 16px 20px; font-weight: bold; color: #1a3a5c; cursor: pointer; font-size: 15px; }
+  .comp-table-wrap { overflow-x: auto; padding: 0 20px 20px; }
+  .comp-price { font-size: 12px; }
+  .price-high { color: #e74c3c; }
+  .price-low { color: #27ae60; }
+  .price-mid { color: #333; }
+
+  /* 凡例 */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; font-size: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* フッター */
+  footer { text-align: center; color: #aaa; font-size: 12px; padding: 20px; }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div>
+    <h1>石和温泉 ホテル甲子園 RMダッシュボード</h1>
+    <div style="font-size:13px;opacity:0.8;margin-top:4px;">Revenue Management System — モックアップ版</div>
+  </div>
+  <div class="meta">
+    取得日：2026年4月9日（木）<br>
+    次回更新：2026年4月16日（木）<br>
+    <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;font-size:11px;">※ 残室データはモック</span>
+  </div>
+</div>
+
+<!-- フロー -->
+<div class="flow-bar">
+  <div class="flow-step done">
+    <div class="badge">1</div>
+    <div class="label">楽通から残室取得</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step done">
+    <div class="badge">2</div>
+    <div class="label">競合価格スクレイピング ✓</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step current">
+    <div class="badge">3</div>
+    <div class="label">消化率 vs ブッキングカーブ比較</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">
+    <div class="badge">4</div>
+    <div class="label">競合価格との差確認</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">
+    <div class="badge">5</div>
+    <div class="label">ランク変更案記入</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">
+    <div class="badge">6</div>
+    <div class="label">オーナー承認 → ラクツウ反映</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- サマリーカード -->
+  <div class="cards">
+    <div class="card red">
+      <div class="label">今週の平均消化率</div>
+      <div class="value">42%</div>
+      <div class="sub">目標: 58%　▼ 16pt 下回っています</div>
+    </div>
+    <div class="card green">
+      <div class="label">競合より低い価格の日数</div>
+      <div class="value">21日</div>
+      <div class="sub">30日中 / 価格競争力あり</div>
+    </div>
+    <div class="card orange">
+      <div class="label">ランク変更推奨日数</div>
+      <div class="value">8日</div>
+      <div class="sub">DOWN推奨: 6日　UP検討: 2日</div>
+    </div>
+    <div class="card" style="border-left-color:#9b59b6;">
+      <div class="label">競合平均価格（30日平均）</div>
+      <div class="value" style="color:#9b59b6;">¥38,420</div>
+      <div class="sub">自社平均 ¥33,800 ／ 差: ▲¥4,620</div>
+    </div>
+  </div>
+
+  <!-- メインテーブル -->
+  <div class="section-title"><span class="icon">📊</span> 日別RM判断（今後30日）</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#fffbf0;border:1px solid #ddd;"></div> 土曜</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fff5f5;border:1px solid #ddd;"></div> 日祝・連休</div>
+    <div class="legend-item"><span class="badge-action stay">STAY</span> 維持</div>
+    <div class="legend-item"><span class="badge-action up">UP検討</span> 値上げ余地あり</div>
+    <div class="legend-item"><span class="badge-action down">DOWN推奨</span> 値下げ検討</div>
+  </div>
+  <div class="table-wrap">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th>宿泊日</th>
+          <th>曜日</th>
+          <th>リードタイム</th>
+          <th>日判定</th>
+          <th>目標消化率</th>
+          <th>実績消化率</th>
+          <th>差異</th>
+          <th>競合平均</th>
+          <th>現在ランク</th>
+          <th>推奨アクション</th>
+          <th>備考</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- 部屋別ランク -->
+  <div class="section-title"><span class="icon">🛏</span> 部屋タイプ別 現在ランク / 推奨ランク</div>
+  <div class="room-grid" id="roomGrid"></div>
+
+  <!-- 競合価格モニター -->
+  <details>
+    <summary>🏨 競合価格モニター（直近14日）</summary>
+    <div class="comp-table-wrap">
+      <div id="compTable"></div>
+    </div>
+  </details>
+
+</div>
+
+<footer>石和温泉 ホテル甲子園 RMシステム モックアップ v0.1 ／ データ取得: 2026/04/09 ／ ※残室データはサンプルです</footer>
+
+<script>
+// ========== データ定義 ==========
+
+const RANKS = ['A1','B1','C1','D1','E1','F1','G1','H1','I1','J1','K1','L1','M1','N1','O1','P1','Q1','R1'];
+const RANK_PRICE = {'A1':13300,'B1':15300,'C1':16300,'D1':17800,'E1':19300,'F1':20800,'G1':22300,'H1':23800,'I1':25300,'J1':26800,'K1':28300,'L1':29800,'M1':31300,'N1':32800,'O1':34300,'P1':35800,'Q1':37300,'R1':38800};
+
+// 目標消化率テーブル（リードタイム→曜日タイプ）
+function targetOcc(lead, dayType) {
+  const tables = {
+    '土/連休初日': [0.95,0.89,0.88,0.87,0.86,0.85,0.84,0.84,0.83,0.82,0.81,0.80,0.79,0.78,0.77,0.76,0.75,0.74,0.73,0.72,0.71,0.70,0.69,0.68,0.68,0.68,0.68,0.68,0.68,0.68],
+    '連休中日':    [0.84,0.77,0.76,0.74,0.73,0.72,0.71,0.70,0.69,0.67,0.66,0.65,0.64,0.63,0.62,0.61,0.60,0.59,0.58,0.57,0.57,0.57,0.57,0.57,0.57,0.57,0.57,0.57,0.57,0.57],
+    '平日/日':    [0.72,0.65,0.64,0.61,0.60,0.59,0.58,0.55,0.54,0.53,0.52,0.50,0.49,0.48,0.47,0.46,0.45,0.44,0.43,0.42,0.41,0.40,0.39,0.38,0.36,0.36,0.36,0.36,0.36,0.36],
+  };
+  const arr = tables[dayType] || tables['平日/日'];
+  return arr[Math.min(lead, arr.length - 1)];
+}
+
+// 曜日判定
+function getDayType(date) {
+  const d = date.getDay();
+  const m = date.getMonth()+1, day = date.getDate();
+  const holidays = [[1,1],[1,2],[1,3],[4,29],[5,3],[5,4],[5,5],[7,21],[8,11],[9,15],[10,13],[11,3],[11,23],[12,23]];
+  const isHoliday = holidays.some(([hm,hd]) => m===hm && day===hd);
+  if (d === 6 || isHoliday) return '土/連休初日';
+  if (d === 0) return '平日/日';
+  return '平日/日';
+}
+
+// モック実績消化率（リアルな旅館っぽい値）
+function mockOcc(lead, dayType) {
+  const base = dayType === '土/連休初日' ? 0.62 : 0.38;
+  const noise = (Math.sin(lead * 1.7) * 0.12) + (Math.cos(lead * 0.9) * 0.08);
+  return Math.max(0.05, Math.min(0.98, base - (lead * 0.007) + noise));
+}
+
+// 現在ランク（モック）
+const ROOM_RANKS = {
+  '金峰': ['E1','F1','G1','M1','F1','D1','B1','C1','E1','F1','G1','F1','E1','D1'],
+  '笛吹': ['F1','G1','G1','L1','F1','E1','C1','D1','F1','G1','H1','G1','F1','E1'],
+  '天神': ['E1','F1','G1','M1','F1','D1','B1','C1','E1','F1','G1','F1','E1','D1'],
+  '天目': ['K1','L1','M1','R1','L1','K1','H1','I1','K1','L1','M1','L1','K1','J1'],
+  '赤岳': ['D1','E1','F1','L1','E1','D1','B1','C1','D1','E1','F1','E1','D1','C1'],
+  '風林': ['F1','G1','H1','N1','G1','E1','C1','D1','F1','G1','H1','G1','F1','E1'],
+};
+
+// 競合モックデータ（9施設×14日）
+const COMP_HOTELS = ['かげつ','坐忘','ホテルふじ','慶山','古柏園','糸柳こやどゆわ','山県館','みなもと旅館','糸柳別館'];
+function compPrice(hotelIdx, dayOffset) {
+  const bases = [48000,68000,35000,40000,31000,55000,37000,29000,73000];
+  const b = bases[hotelIdx % bases.length];
+  const weekend = (dayOffset % 7 === 5 || dayOffset % 7 === 6) ? 1.3 : 1.0;
+  const noise = 1 + (Math.sin(hotelIdx*3.1+dayOffset*0.7)*0.15);
+  return Math.round(b * weekend * noise / 100) * 100;
+}
+
+// ========== テーブル描画 ==========
+const tbody = document.getElementById('tableBody');
+const today = new Date(2026, 3, 9); // 2026/04/09
+
+const rows = [];
+for (let i = 1; i <= 30; i++) {
+  const d = new Date(today);
+  d.setDate(today.getDate() + i);
+  const dayType = getDayType(d);
+  const lead = i;
+  const target = targetOcc(lead, dayType);
+  const actual = mockOcc(lead, dayType);
+  const diff = actual - target;
+
+  // 競合平均（価格）
+  const compPrices = COMP_HOTELS.map((_, hi) => compPrice(hi, i)).filter(p => p > 0);
+  const compAvg = Math.round(compPrices.reduce((a,b)=>a+b,0)/compPrices.length);
+
+  // 現在ランク（全部屋の代表として金峰）
+  const rankIdx = Math.min(i-1, ROOM_RANKS['金峰'].length-1);
+  const curRank = ROOM_RANKS['金峰'][rankIdx] || 'F1';
+
+  // 推奨アクション
+  let action, actionClass;
+  if (diff >= 0.05) { action = '⬆️ UP検討'; actionClass = 'up'; }
+  else if (diff <= -0.10) { action = '⬇️ DOWN推奨'; actionClass = 'down'; }
+  else { action = '✅ STAY'; actionClass = 'stay'; }
+
+  // 備考
+  let note = '';
+  if (dayType === '土/連休初日') note = '🌸 土・連休';
+  if (compAvg > 45000) note += ' 競合高め';
+
+  const weekdays = ['日','月','火','水','木','金','土'];
+  const wd = weekdays[d.getDay()];
+  const trClass = d.getDay()===6 ? 'weekend' : d.getDay()===0 ? 'holiday' : '';
+
+  const diffStr = (diff >= 0 ? '+' : '') + (diff*100).toFixed(1) + '%';
+  const diffClass = diff >= 0.05 ? 'diff-pos' : diff <= -0.10 ? 'diff-neg' : 'diff-neu';
+
+  const targetPct = (target*100).toFixed(0);
+  const actualPct = (actual*100).toFixed(0);
+
+  const fillColor = actual >= target ? '#27ae60' : actual >= target-0.1 ? '#e67e22' : '#e74c3c';
+
+  tbody.innerHTML += `<tr class="${trClass}">
+    <td><strong>${d.getMonth()+1}/${d.getDate()}</strong></td>
+    <td>${wd}</td>
+    <td>${lead}日前</td>
+    <td style="font-size:11px;">${dayType}</td>
+    <td>${targetPct}%</td>
+    <td>
+      <div class="occ-bar">
+        <div class="occ-fill" style="width:${actualPct}%;background:${fillColor};"></div>
+        <div class="occ-label">${actualPct}%</div>
+      </div>
+    </td>
+    <td class="${diffClass}">${diffStr}</td>
+    <td>¥${compAvg.toLocaleString()}</td>
+    <td><span class="rank">${curRank}</span><br><span style="font-size:11px;color:#888;">¥${(RANK_PRICE[curRank]||0).toLocaleString()}</span></td>
+    <td><span class="badge-action ${actionClass}">${action}</span></td>
+    <td style="font-size:11px;color:#888;">${note}</td>
+  </tr>`;
+
+  rows.push({date:d, dayType, target, actual, diff, compAvg, curRank, action, actionClass});
+}
+
+// ========== 部屋グリッド ==========
+const roomGrid = document.getElementById('roomGrid');
+const roomNames = ['金峰','笛吹','天神','天目','赤岳','風林'];
+roomNames.forEach(room => {
+  const ranks = ROOM_RANKS[room];
+  let html = `<div class="room-card"><h3>🛏 ${room}</h3>`;
+  const dates = [1,2,3,7,14,21,30];
+  dates.forEach(offset => {
+    const d = new Date(today);
+    d.setDate(today.getDate()+offset);
+    const wd = ['日','月','火','水','木','金','土'][d.getDay()];
+    const ri = Math.min(offset-1, ranks.length-1);
+    const cur = ranks[ri] || 'F1';
+    const row = rows[offset-1];
+    let suggest = cur;
+    let sugClass = 'rank-current';
+    if (row) {
+      if (row.actionClass === 'up' && RANKS.indexOf(cur) < RANKS.length-1) {
+        suggest = RANKS[RANKS.indexOf(cur)+1]; sugClass = 'rank-suggest';
+      } else if (row.actionClass === 'down' && RANKS.indexOf(cur) > 0) {
+        suggest = RANKS[RANKS.indexOf(cur)-1]; sugClass = 'rank-down';
+      }
+    }
+    const changed = suggest !== cur;
+    html += `<div class="room-row">
+      <span class="date">${d.getMonth()+1}/${d.getDate()}(${wd})</span>
+      <span>
+        <span class="rank-badge rank-current">${cur}</span>
+        ${changed ? `<span class="arrow">→</span><span class="rank-badge ${sugClass}">${suggest}</span>` : ''}
+      </span>
+    </div>`;
+  });
+  html += '</div>';
+  roomGrid.innerHTML += html;
+});
+
+// ========== 競合テーブル ==========
+const compDiv = document.getElementById('compTable');
+const dates14 = Array.from({length:14}, (_,i) => {
+  const d = new Date(today); d.setDate(today.getDate()+i+1); return d;
+});
+let ct = '<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr><th style="text-align:left;padding:8px;background:#f5f5f5;">施設名</th>';
+dates14.forEach(d => {
+  ct += `<th style="padding:8px;background:#f5f5f5;">${d.getMonth()+1}/${d.getDate()}</th>`;
+});
+ct += '</tr></thead><tbody>';
+COMP_HOTELS.forEach((hotel, hi) => {
+  ct += `<tr><td style="padding:7px 8px;font-weight:bold;">${hotel}</td>`;
+  dates14.forEach((d, di) => {
+    const p = compPrice(hi, di+1);
+    const cls = p >= 60000 ? 'price-high' : p <= 30000 ? 'price-low' : 'price-mid';
+    ct += `<td style="padding:7px 8px;text-align:center;" class="${cls}">¥${(p/1000).toFixed(0)}k</td>`;
+  });
+  ct += '</tr>';
+});
+ct += '</tbody></table>';
+compDiv.innerHTML = ct;
+</script>
+</body>
+</html>
