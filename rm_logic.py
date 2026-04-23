@@ -14,9 +14,9 @@ TODAY       = datetime(2026, 4, 9)
 DAYS_AHEAD  = 30
 TOTAL_ROOMS = 17
 
-_BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
-CSV_DIR       = r"C:\Users\tsukamoto.seishu\Downloads"
-PMS_CSV       = r"C:\Users\tsukamoto.seishu\Downloads\a.csv"
+_BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
+CSV_DIR         = os.path.join(_BASE_DIR)
+PMS_CSV         = os.path.join(_BASE_DIR, "a.csv")
 COMP_PRICES_CSV = os.path.join(_BASE_DIR, "competitor_prices_sample.csv")
 
 RANKS = ['A1','B1','C1','D1','E1','F1','G1','H1','I1','J1',
@@ -378,7 +378,7 @@ def calc_rm_rows(daily, comp_prices, today=None, days_ahead=None):
 # ============================================================
 # RM設定スナップショット（履歴ログ）
 # ============================================================
-SNAPSHOT_CSV = r"C:\Users\tsukamoto.seishu\rm_system\rm_snapshot.csv"
+SNAPSHOT_CSV = os.path.join(_BASE_DIR, "rm_snapshot.csv")
 SNAPSHOT_COLS = ['保存日', '対象日', '曜日', 'リードタイム',
                  '推奨ランク', '推奨価格', '実績消化率', '目標消化率', 'アクション', '競合平均']
 

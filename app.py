@@ -72,7 +72,7 @@ with st.sidebar:
     if comp_file:
         st.success(f"✅ 競合価格: {comp_file.name}")
     else:
-        st.info("競合価格CSV未アップロード\n（ローカルファイルを使用）")
+        st.info("競合価格CSV未アップロード\n（サンプルデータを使用）")
 
     st.caption(f"最終更新: {datetime.now().strftime('%Y/%m/%d %H:%M')}")
 
@@ -106,6 +106,7 @@ try:
     )
 except Exception as e:
     st.error(f"データ読み込みエラー: {e}")
+    st.info("PMSデータ（a.csv）をサイドバーからアップロードしてください。")
     st.stop()
 
 # ============================================================
