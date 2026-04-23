@@ -300,9 +300,9 @@ def load_data(pms_file=None, rakutsuu_files=None, comp_file=None):
         daily, lead_dist, monthly_rev = _parse_pms(PMS_CSV)
         data_source = f'PMSデータ ({os.path.basename(PMS_CSV)})'
     else:
-        files = glob.glob(f'{CSV_DIR}/ReserveList_*.csv')
-        daily, lead_dist, monthly_rev = _parse_rakutsuu(files)
-        data_source = 'ラクツウCSV (ReserveList_*.csv)'
+        # データなし（クラウド環境など）→ 空データで起動
+        daily, lead_dist, monthly_rev = defaultdict(int), defaultdict(lambda: defaultdict(int)), {}
+        data_source = 'データ未アップロード'
 
     # 競合価格
     if comp_file is not None:

@@ -5,6 +5,7 @@ Streamlit アプリ本体
 """
 
 import io
+import os
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
@@ -13,6 +14,10 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 import rm_logic as rm
+
+# クラウド環境かどうかを判定（ファイル書き込み不可）
+IS_CLOUD = os.environ.get("STREAMLIT_SHARING_MODE") == "streamlit_sharing" \
+           or not os.path.exists(rm._BASE_DIR + "/../rm_system")
 
 # ============================================================
 # ページ設定
@@ -54,7 +59,9 @@ with st.sidebar:
         help="competitor_prices.csv をアップロード",
     )
 
-    if st.button("🔍 競合価格を今すぐ取得"):
+    if IS_CLOUD:
+        st.info("🔍 競合価格取得はPC版のみ対応\n（自PCで scrape_daily.bat を実行後、CSVをアップロード）")
+    elif st.button("🔍 競合価格を今すぐ取得"):
         with st.spinner("楽天APIから競合価格を取得中（約3分）..."):
             try:
                 import competitor_scraper
@@ -106,8 +113,10 @@ try:
     )
 except Exception as e:
     st.error(f"データ読み込みエラー: {e}")
-    st.info("PMSデータ（a.csv）をサイドバーからアップロードしてください。")
+    st.info("👈 左のサイドバーからPMSデータ（a.csv）をアップロードしてください。")
     st.stop()
+
+NO_PMS = (data_source == 'データ未アップロード')
 
 # ============================================================
 # 5タブ
@@ -126,6 +135,8 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 with tab1:
     st.header("RM推奨価格案（30日間）")
     st.caption(f"データソース: {data_source}")
+    if NO_PMS:
+        st.warning("👈 サイドバーからPMSデータ（a.csv）をアップロードすると実績データが反映されます。")
 
     # ---- KPI カード ----
     today_rows = [r for r in rows if r['lead'] <= 7]
@@ -500,6 +511,8 @@ with tab4:
 # ------------------------------------------------------------------
 with tab5:
     st.header("月次売上サマリー")
+    if NO_PMS:
+        st.warning("👈 サイドバーからPMSデータ（a.csv）をアップロードすると実績売上が反映されます。")
 
     budget = rm.MONTHLY_BUDGET
     months = sorted(set(list(budget.keys()) + list(monthly_rev.keys())))
