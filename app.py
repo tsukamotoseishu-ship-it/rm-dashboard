@@ -364,81 +364,63 @@ with tab4:
         if future_cols:
             pivot = pivot[future_cols]
 
-        # 競合平均行（自社除く）
-        others = list(pivot.index)
-        avg_row = pivot.mean(skipna=True)
-        pivot.loc['競合平均（自社除く）'] = avg_row
+        if pivot.empty or len(pivot.columns) == 0:
+            st.info("👈 サイドバーから競合価格CSV（competitor_prices.csv）をアップロードすると表が表示されます。")
+        else:
+            # 競合平均行・自社行を追加
+            others = list(pivot.index)
+            pivot.loc['競合平均（自社除く）'] = pivot.mean(skipna=True)
+            own_prices = {r['date'].strftime('%Y/%m/%d'): r['sug_price'] for r in rows}
+            pivot.loc['ホテル甲子園（自社）'] = {col: own_prices.get(col) for col in pivot.columns}
 
-        # 自社価格行：RMの推奨価格（2名合計）をマッピング
-        own_prices = {
-            r['date'].strftime('%Y/%m/%d'): r['sug_price']
-            for r in rows
-        }
-        pivot.loc['ホテル甲子園（自社）'] = {
-            col: own_prices.get(col) for col in pivot.columns
-        }
+            col_keys        = list(pivot.columns)
+            col_labels_list = [date_label(c) for c in col_keys]
+            row_labels      = others + ['競合平均（自社除く）', 'ホテル甲子園（自社）']
 
-        col_keys   = list(pivot.columns)           # 元の '2026/04/11' 形式
-        col_labels_list = [date_label(c) for c in col_keys]
+            def cell_bg(row_name, col_label):
+                if '甲子園' in str(row_name):   return '#FDE8E8'
+                if '競合平均' in str(row_name): return '#E8F5E9'
+                if '土' in col_label:            return '#FFF3E0'
+                if '日' in col_label:            return '#FFEBEE'
+                return '#FFFFFF'
 
-        # 行順：競合施設 → 競合平均 → 自社
-        row_labels = (
-            others
-            + ['競合平均（自社除く）']
-            + ['ホテル甲子園（自社）']
-        )
+            def cell_val(v, row_name):
+                if pd.isna(v):
+                    return '<span style="color:#CCCCCC">×</span>'
+                bold = 'font-weight:bold;' if ('甲子園' in str(row_name) or '競合平均' in str(row_name)) else ''
+                return f'<span style="{bold}">{int(v):,}</span>'
 
-        def cell_bg(row_name, col_label):
-            if '甲子園' in str(row_name):   return '#FDE8E8'
-            if '競合平均' in str(row_name): return '#E8F5E9'
-            if '土' in col_label:            return '#FFF3E0'
-            if '日' in col_label:            return '#FFEBEE'
-            return '#FFFFFF'
+            th_base  = 'background:#1a3a5c;color:white;padding:4px 8px;white-space:nowrap;font-size:11px;text-align:center;border:1px solid #2c5f8a;position:sticky;top:0;z-index:2;'
+            th_first = 'background:#1a3a5c;color:white;padding:4px 8px;min-width:130px;text-align:left;border:1px solid #2c5f8a;position:sticky;left:0;top:0;z-index:3;'
+            td_first = 'padding:3px 10px;white-space:nowrap;font-size:12px;border:1px solid #ddd;position:sticky;left:0;z-index:1;font-weight:bold;'
 
-        def cell_val(v, row_name):
-            if pd.isna(v):
-                return '<span style="color:#CCCCCC">×</span>'
-            n = int(v)
-            bold = 'font-weight:bold;' if ('甲子園' in str(row_name) or '競合平均' in str(row_name)) else ''
-            return f'<span style="{bold}">{n:,}</span>'
+            rows_html = []
+            ths = f'<th style="{th_first}">施設名</th>'
+            for lbl in col_labels_list:
+                sat_bg = 'background:#d35400;' if '土' in lbl else ('background:#c0392b;' if '日' in lbl else '')
+                ths += f'<th style="{th_base}{sat_bg}">{lbl}</th>'
+            rows_html.append(f'<tr>{ths}</tr>')
 
-        # HTML組み立て
-        th_base  = 'background:#1a3a5c;color:white;padding:4px 8px;white-space:nowrap;font-size:11px;text-align:center;border:1px solid #2c5f8a;position:sticky;top:0;z-index:2;'
-        th_first = 'background:#1a3a5c;color:white;padding:4px 8px;min-width:130px;text-align:left;border:1px solid #2c5f8a;position:sticky;left:0;top:0;z-index:3;'
-        td_first = 'padding:3px 10px;white-space:nowrap;font-size:12px;border:1px solid #ddd;position:sticky;left:0;z-index:1;font-weight:bold;'
+            for rname in row_labels:
+                if '甲子園' in str(rname):   name_bg = '#f5b7b1;'
+                elif '競合平均' in str(rname): name_bg = '#a9dfbf;'
+                else:                          name_bg = '#2c3e50;color:white;'
+                tds = f'<td style="{td_first}background:{name_bg}">{rname}</td>'
+                for ck, cl in zip(col_keys, col_labels_list):
+                    v   = pivot.loc[rname, ck]
+                    bg  = cell_bg(rname, cl)
+                    val = cell_val(v, rname)
+                    tds += f'<td style="background:{bg};padding:3px 8px;text-align:right;font-size:12px;border:1px solid #eee;min-width:72px;">{val}</td>'
+                rows_html.append(f'<tr>{tds}</tr>')
 
-        rows_html = []
-        # ヘッダー行
-        ths = f'<th style="{th_first}">施設名</th>'
-        for lbl in col_labels_list:
-            sat_bg = 'background:#d35400;' if '土' in lbl else ('background:#c0392b;' if '日' in lbl else '')
-            ths += f'<th style="{th_base}{sat_bg}">{lbl}</th>'
-        rows_html.append(f'<tr>{ths}</tr>')
-
-        # データ行
-        for rname in row_labels:
-            if '甲子園' in str(rname):
-                row_bg = '#FDE8E8'; name_bg = '#f5b7b1;'
-            elif '競合平均' in str(rname):
-                row_bg = '#E8F5E9'; name_bg = '#a9dfbf;'
-            else:
-                row_bg = '#FFFFFF'; name_bg = '#2c3e50;color:white;'
-            tds = f'<td style="{td_first}background:{name_bg if name_bg else row_bg}">{rname}</td>'
-            for ck, cl in zip(col_keys, col_labels_list):
-                v   = pivot.loc[rname, ck]
-                bg  = cell_bg(rname, cl)
-                val = cell_val(v, rname)
-                tds += f'<td style="background:{bg};padding:3px 8px;text-align:right;font-size:12px;border:1px solid #eee;min-width:72px;">{val}</td>'
-            rows_html.append(f'<tr>{tds}</tr>')
-
-        html_table = f"""
-        <div style="overflow-x:auto;max-height:480px;overflow-y:auto;border:1px solid #ccc;border-radius:4px;">
-        <table style="border-collapse:collapse;width:max-content;">
-        <thead>{''.join(rows_html[:1])}</thead>
-        <tbody>{''.join(rows_html[1:])}</tbody>
-        </table></div>
-        """
-        st.html(html_table)
+            html_table = f"""
+            <div style="overflow-x:auto;max-height:480px;overflow-y:auto;border:1px solid #ccc;border-radius:4px;">
+            <table style="border-collapse:collapse;width:max-content;">
+            <thead>{''.join(rows_html[:1])}</thead>
+            <tbody>{''.join(rows_html[1:])}</tbody>
+            </table></div>
+            """
+            st.html(html_table)
 
         st.divider()
 
