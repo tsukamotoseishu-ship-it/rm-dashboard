@@ -8,13 +8,32 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Streamlit cache
+# Streamlit
 .streamlit/secrets.toml
 
-# ログ
-scrape_log.txt
+# ログ・一時ファイル
+*.log
+*.txt
 rm_snapshot.csv
+startup_err.txt
+run_test.log
+streamlit_test.log
+streamlit.log
+err.log
 
-# Excel出力
+# Excel・PDF・画像
 RM価格案.xlsx
 ~$*.xlsx
+temp_contest.pdf
+pptx_slides/
+
+# バックアップ
+*_backup_*.py
+
+# 環境変数
+.env
+.env.local
+
+# Windows
+Thumbs.db
+desktop.ini

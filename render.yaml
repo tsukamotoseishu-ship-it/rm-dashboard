@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: rm-dashboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python -m playwright install chromium --with-deps
+    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --server.enableCORS false
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: SUPABASE_URL
+        sync: false   # Renderのダッシュボードで手動入力
+      - key: SUPABASE_KEY
+        sync: false   # Renderのダッシュボードで手動入力
